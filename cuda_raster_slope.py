@@ -28,6 +28,11 @@ def get_slope_simple(arrx, arry, Sx, Sx2, SxSx):
         Sxy += itemx * itemy
         Sy += itemy
     return (n*Sxy - Sx * Sy) / (n*Sx2 - SxSx)
+def get_slope_numpy(arrx, arry, Sx, Sx2, SxSx):
+    n = arrx.shape[0]
+    Sy = np.sum(arry)
+    Sxy = arrx @ arry
+    return (n*Sxy - Sx * Sy) / (n*Sx2 - SxSx)
 
 def get_slope_polyfit(arr_vals):
     return np.polyfit(np.arange(len(arr_vals)), arr_vals, deg=1)[0]
@@ -50,7 +55,7 @@ def get_slope_cuda(arrx, arry, Sx, Sx2, SxSx, out):
 
 if __name__ == '__main__':
     np.random.seed(42)
-    testdata = np.random.randint(1000, 5000, (8000, 3000, 10))#.astype(float)
+    testdata = np.random.randint(1000, 5000, (8000, 300, 10))#.astype(float)
     x = np.arange(testdata.shape[-1]).astype(np.int64)
     # an_array = np.zeros(testdata.shape[:-1], dtype=float)
 
@@ -101,6 +106,17 @@ if __name__ == '__main__':
     t1 = time.time()
     print(f"Numba apply along axis: took {(t1-t0):7.4f}s. (Array dim: {testdata.shape}) "
           f"- are results the same? {np.allclose(out_numba, out_cuda)}")
+
+    t0 = time.time()
+    n = testdata.shape[-1]
+    x = np.arange(n)
+    Sx = np.sum(x)
+    SxSx = Sx * Sx
+    Sx2 = np.sum(np.square(x))
+    out_npy = np.apply_along_axis(lambda data: get_slope_numpy(x, data, Sx, Sx2, SxSx), -1, testdata)
+    t1 = time.time()
+    print(f"np apply along axis:    took {(t1-t0):7.4f}s. (Array dim: {testdata.shape}) "
+          f"- are results the same? {np.allclose(out_npy, out_cuda)}")
 
     t0 = time.time()
     n = testdata.shape[-1]
